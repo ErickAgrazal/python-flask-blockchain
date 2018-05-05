@@ -1,3 +1,5 @@
+import os
+
 from uuid import uuid4
 from flask import Flask, jsonify, request
 import json
@@ -111,4 +113,4 @@ def consensus():
     return jsonify(response), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, use_reloader=True)
+    app.run(host=os.environ.get('FLASK_HOST', '0.0.0.0'), port=os.environ.get('FLASK_PORT', 5000), use_reloader=True)
