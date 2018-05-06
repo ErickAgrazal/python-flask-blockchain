@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  db:
+    build: 
+      context: .
+      dockerfile: ./docker/postgres/Dockerfile
+    container_name: parking_lot_ps01
+    environment:
+      - POSTGRES_PASSWORD=1029jdsdlaksmdpowj1309u12plmsd
+      - POSTGRES_USER=django
+      - POSTGRES_DB=django
+    expose:
+      - 5432
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    restart: always
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/django/production.Dockerfile
+    container_name: parking_lot_dj01
+    command: bash -c "/code/utilities/wait-for-it.sh postgres:5432 && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn src.wsgi:application --log-level info -w 2 --reload -b :8000"
+    depends_on:
+      - db
+    environment:
+      - DJANGO_SETTINGS_MODULE=src.settings.production
+      - DB_PASSWORD=1029jdsdlaksmdpowj1309u12plmsd
+      - DB_USER=django
+      - DB_NAME=django
+      - DB_HOST=db
+      - DB_PORT=5432
+      - IN_DOCKER=1
+      - IN_PRODUCTION=1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/code
+      - ./src/media:/code/media
+      - ./utilities:/code/utilities
+    restart: always
+  nginx:
+    build: 
+      context: .
+      dockerfile: ./docker/nginx/production.Dockerfile
+    container_name: parking_lot_ng01
+    depends_on:
+      - web
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - web:web
+    volumes:
+      # deployment is the folder where we have added few configurations
+      - ./deployment/nginx:/etc/nginx/conf.d
+      - ./src/staticfiles:/staticfiles
